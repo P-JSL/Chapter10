@@ -12,6 +12,8 @@ public  class Northwind : DbContext
     
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
+        //optionsBuilder.UseLazyLoadingProxies();
+
         if(ProjectConstants.DatabaseProvider == "SQLite")
         {
             string path = Path.Combine(
@@ -30,6 +32,8 @@ public  class Northwind : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<Product>().HasQueryFilter(p => !p.Discontinued);
+
         // Fluent API 이용, 이름 15 제한
         modelBuilder.Entity<Category>()
                     .Property(category => category.CategoryName)
