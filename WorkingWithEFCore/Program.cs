@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Storage;
 
 using static System.Console;
 
@@ -13,10 +14,19 @@ WriteLine($"Using {ProjectConstants.DatabaseProvider} database provider");
 //FilteredIncludes();
 //QueryingProducts();
 //QueryingWithLike();
+/*
 if(AddProduct(categoryId:6, productName:"Bob`s Burgers", price: 500M))
 {
     WriteLine("Add product successful.");
 }
+ListProducts();*/
+/*
+if(IncreaseProductPrice(productNameStartsWith: "Bob", amount : 20M))
+{
+    WriteLine("Update product price successful.");
+}*/
+int deleted = DeleteProducts(productNameStartsWith: "Bob");
+WriteLine($"{deleted} product(s) were deleted");
 ListProducts();
 
 static void QueryingCategories()
@@ -188,6 +198,43 @@ static void ListProducts()
         {
             WriteLine("{0:000} {1,-35} {2,8:$#,##0,00} {3,5} {4}",
                 p.ProductId,p.ProductName,p.Cost,p.Stock,p.Discontinued);
+        }
+    }
+}
+
+static bool IncreaseProductPrice(string productNameStartsWith, decimal amount)
+{
+    using Northwind db = new();
+    Product updateProduct = db.Products.First(p
+                                => p.ProductName.StartsWith(productNameStartsWith));
+    updateProduct.Cost += amount;
+    int affected = db.SaveChanges();
+    return (affected == 1);
+}
+
+static int DeleteProducts(string productNameStartsWith)
+{
+    using (Northwind db = new())
+    {
+        using (IDbContextTransaction t = db.Database.BeginTransaction())
+        {
+            WriteLine("Transaction isolation level : {0}", arg0: t.GetDbTransaction().IsolationLevel);
+
+            IQueryable<Product>? products = db.Products?.Where(
+                p => p.ProductName.StartsWith(productNameStartsWith));
+
+            if (products is null)
+            {
+                WriteLine("No products found to dedlete.");
+                return 0;
+            }
+            else
+            {
+                db.Products.RemoveRange(products);
+            }
+            int affected = db.SaveChanges();
+            t.Commit();
+            return affected;
         }
     }
 }
